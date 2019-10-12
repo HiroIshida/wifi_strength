@@ -10,6 +10,7 @@ import tf
 import numpy as np
 import numpy.random as rn
 import matplotlib.pyplot as plt
+import json
 
 class WifiMap:
     def __init__(self):
@@ -70,6 +71,13 @@ class DataManager():
             self.n_data += 1
             print "pushed"
             print x
+    
+    def dump(self, filename = "tmp.json"):
+        x_list = [[elem[0], elem[1]] for elem in self.data_x]
+        data = {"X": x_list, "Z": self.data_z}
+        json_file = open(filename, "w")
+        json.dump(data, json_file)
+        json_file.close()
 
     def _isValidInput(self, x, tau = 0.5):
         if self.n_data == 0:
