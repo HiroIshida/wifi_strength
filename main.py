@@ -7,6 +7,9 @@ import re
 from std_msgs.msg import Float32
 from nav_msgs.msg import OccupancyGrid
 import tf
+import numpy as np
+import numpy.random as rn
+import matplotlib.pyplot as plt
 
 class WifiMap:
     def __init__(self):
@@ -54,6 +57,29 @@ class WifiMap:
         self.map_copied.data = data
         return self.map_copied
 
+class DataManager():
+    def __init__(self):
+        self.data_x = []
+        self.data_z = []
+        self.n_data = 0
+
+    def push(self, x, z):
+        if self._isValidInput(x):
+            self.data_x.append(x)
+            self.data_z.append(z)
+            self.n_data += 1
+
+    def _isValidInput(self, x, tau = 1.0):
+        if self.n_data == 0:
+            return True
+        x0_vec = np.array([elem[0] for elem in self.data_x])
+        x1_vec = np.array([elem[1] for elem in self.data_x])
+
+        dists = np.sqrt((x0_vec - x[0]) ** 2 + (x1_vec - x[1]) ** 2)
+        dist_min = dists.min()
+        isValid = (dist_min > tau)
+        return isValid
+
 def main():
     rospy.init_node('wifimap_publisher')
     pub_map = rospy.Publisher("wifimap", OccupancyGrid, queue_size = 1)
@@ -65,7 +91,22 @@ def main():
             pub_map.publish(msg)
         r.sleep()
 
-main()
+#main()
+
+if __name__=='__main__':
+    dm = DataManager()
+    dm.push(np.array([0, 0]), 10)
+
+    for i in range(10000):
+        x = rn.randn(2)
+        dm.push(x, 0)
+
+    x_data, y_data = [[elem[i] for elem in dm.data_x] for i in [0, 1]]
+    plt.scatter(x_data, y_data)
+
+
+
+
 
 
 
