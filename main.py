@@ -68,8 +68,10 @@ class DataManager():
             self.data_x.append(x)
             self.data_z.append(z)
             self.n_data += 1
+            print "pushed"
+            print x
 
-    def _isValidInput(self, x, tau = 1.0):
+    def _isValidInput(self, x, tau = 0.5):
         if self.n_data == 0:
             return True
         x0_vec = np.array([elem[0] for elem in self.data_x])
@@ -80,31 +82,26 @@ class DataManager():
         isValid = (dist_min > tau)
         return isValid
 
-def main():
+def get_wifi_strength():
+    result_ = subprocess.check_output(["iwconfig"], stderr = subprocess.STDOUT)
+    result = ''.join(result_)
+    tmp = re.findall(r'level=-\d+', result)[0]
+    wifi_strength = float(tmp[-3:])
+    return wifi_strength
+
+if __name__=="__main__":
     rospy.init_node('wifimap_publisher')
     pub_map = rospy.Publisher("wifimap", OccupancyGrid, queue_size = 1)
     wfm = WifiMap()
+    dm = DataManager()
     r = rospy.Rate(1)
     while not rospy.is_shutdown():
-        msg = wfm.create_debug_map()
-        if msg is not None:
-            pub_map.publish(msg)
-        r.sleep()
-
-#main()
-
-if __name__=='__main__':
-    dm = DataManager()
-    dm.push(np.array([0, 0]), 10)
-
-    for i in range(10000):
-        x = rn.randn(2)
-        dm.push(x, 0)
-
-    x_data, y_data = [[elem[i] for elem in dm.data_x] for i in [0, 1]]
-    plt.scatter(x_data, y_data)
-
-
+        pos_  = wfm.get_global_position()
+        if pos_ is not None:
+            pos = np.array(pos_)
+            wifi_strength = get_wifi_strength()
+            dm.push(pos, wifi_strength)
+            r.sleep()
 
 
 
