@@ -27,7 +27,7 @@ class WifiMap:
         y = - pos_map_origin.y + trans[1]
         return x, y
 
-    def create_debug_map(self):
+    def create_debug_map(self, func):
         ret = self.get_global_position()
         if ret is None:
             return None
@@ -41,12 +41,18 @@ class WifiMap:
         data = [0 for i in range(len(self.map_copied.data))]
         idx_x = int(x // resol)
         idx_y = int(y // resol)
+        print idx_x, idx_y
         to_idx = lambda i, j: j * info.height + i
-        for i in [idx_x - 50 + i for i in range(101)]:
-            for j in [idx_y - 50 + j for j in range(101)]:
+        idx_to_pos = lambda i, j: [resol * i, resol * j]
+        for i in [260 + k for k in range(230)]:
+            for j in [1030 + k for k in range(160)]:
                 idx = to_idx(i, j)
-                data[idx] = 1.0
+                data[idx] = func(idx_to_pos(i, j))
         self.map_copied.data = data
         return self.map_copied
+        """
+        for i in [idx_x - 50 + i for i in range(101)]:
+            for j in [idx_y - 50 + j for j in range(101)]:
+        """
 
 
