@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 from datamanager import DataManager
 from std_msgs.msg import String
 
+from wifimap import WifiMap
+from nav_msgs.msg import OccupancyGrid
+import numpy as np
+
 import json
 import GPy
 from math import *
@@ -42,20 +46,29 @@ def show_gp(model):
     x_list, y_list = [[e[i] for e in model.X.tolist()] for i in range(2)]
     plt.scatter(x_list, y_list)
 
+class WifiCost:
+    def __init__(self):
+        self.pub = rospy.Publisher("wifimap", OccupancyGrid, queue_size = 1)
+        self.sub = rospy.Subscriber("wifi", String, self._callback_wifi)
+        self.wfm = WifiMap()
 
-global mygp
-mygp = None
+    def _callback_wifi(self, msg_wifi):
+        print "hoge-1"
+        dm = DataManager()
 
-def callback_wifi(msg_wifi):
-    print "called"
-    global mygp
-    dm = DataManager()
-    dm.loads(msg_wifi.data)
-    dm.dump("73b2.json")
-    mygp = MyGP(dm)
+        dm = DataManager()
+        dm.load("73b2room.json")
+        #dm.loads(msg_wifi.data)
+        model = generate_gp(dm)
+        def func(pos):
+            mean, var = model.predict(np.array([pos]))
+            return int(-mean.item()*1.5)
+        costmap = self.wfm.create_debug_map(func) 
+        self.pub.publish(costmap)
+        print "hoge-2"
 
 if __name__=="__main__":
-    debug = True
+    debug = False
     if debug:
         dm = DataManager()
         dm.load("73b2room.json")
@@ -64,9 +77,6 @@ if __name__=="__main__":
         plt.show()
     else:
         rospy.init_node("wifi_regression")
-        rospy.Subscriber("wifi", String, callback_wifi)
-        r = rospy.Rate(0.1)
-        while not rospy.is_shutdown():
-            r.sleep()
-
+        wc = WifiCost()
+        rospy.spin()
 
