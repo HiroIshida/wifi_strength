@@ -11,6 +11,7 @@ import numpy as np
 import numpy.random as rn
 import matplotlib.pyplot as plt
 import json
+import gpactive.utils
 
 class WifiMap:
     def __init__(self):
@@ -102,6 +103,20 @@ class DataManager():
         isValid = (dist_min > tau)
         return isValid
 
+class MyGP:
+    def __init__(self, dm):
+        kernel = rbf_uncertain_kernel(sigma = 1, l = 1.0, noise = 1e-5)
+        cov = np.zeros((2, 2))
+        X = [(e, cov) for e in dm.data_x]
+        self.gp = GaussianProcess(X, dm.data_z, kernel)
+
+    def show(self):
+        def func(x):
+            mean, var = self.gp.predict(x)
+            return mean, mean
+        bmin, bmax = self.gp.get_boundary(margin = 0.2)
+        gpactive.utils.show2d(func, bmin, bmax)
+        plt.show()
 
 def get_wifi_strength():
     result_ = subprocess.check_output(["iwconfig"], stderr = subprocess.STDOUT)
@@ -111,12 +126,11 @@ def get_wifi_strength():
     return wifi_strength
 
 if __name__=="__main__":
-    post = True
+    post = False
     if post:
         dm = DataManager()
-        dm.load()
-        dm.show()
-        plt.show()
+        dm.load("bak.json")
+        mygp = MyGP(dm)
     else:
         rospy.init_node('wifimap_publisher')
         pub_map = rospy.Publisher("wifimap", OccupancyGrid, queue_size = 1)
@@ -130,7 +144,8 @@ if __name__=="__main__":
                 wifi_strength = get_wifi_strength()
                 dm.push(pos, wifi_strength)
                 r.sleep()
-        dm.dump()
+        dm.dump("73b2.json")
+
 
 
 
