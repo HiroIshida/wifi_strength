@@ -4,16 +4,18 @@ import os
 import copy
 import subprocess
 import re
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, String
 from nav_msgs.msg import OccupancyGrid
 import tf
 import numpy as np
 import numpy.random as rn
-import matplotlib.pyplot as plt
 import json
-import gpactive.utils
 
+"""
+import gpactive.utils
+import matplotlib.pyplot as plt
 from gpactive import *
+"""
 
 class WifiMap:
     def __init__(self):
@@ -82,6 +84,14 @@ class DataManager():
         json.dump(data, json_file)
         json_file.close()
 
+    def dumps(self): 
+        if self.n_data == 0:
+            return ""
+
+        x_list = [[elem[0], elem[1]] for elem in self.data_x]
+        data = {"X": x_list, "Z": self.data_z}
+        return json.dumps(data)
+
     def load(self, filename = "tmp.json"):
         json_file = open(filename, "r")
         json_object = json.load(json_file)
@@ -105,23 +115,6 @@ class DataManager():
         isValid = (dist_min > tau)
         return isValid
 
-class MyGP:
-    def __init__(self, dm):
-        kernel = rbf_uncertain_kernel(sigma = 1, l = 0.5, noise = 1e-5)
-        cov = np.zeros((2, 2))
-        X = [(e, cov) for e in dm.data_x]
-        self.gp = GaussianProcess(X, dm.data_z, kernel)
-
-    def show(self):
-        def func(x):
-            mean, var = self.gp.predict(x)
-            return mean, mean
-        bmin, bmax = self.gp.get_boundary(margin = 0.2)
-        gpactive.utils.show2d(func, bmin, bmax)
-        x_list, y_list = [[self.gp.X[i][0][j] for i in range(mygp.gp.n_train)] for j in range(2)]
-        plt.scatter(x_list, y_list)
-        plt.show()
-
 def get_wifi_strength():
     result_ = subprocess.check_output(["iwconfig"], stderr = subprocess.STDOUT)
     result = ''.join(result_)
@@ -130,32 +123,19 @@ def get_wifi_strength():
     return wifi_strength
 
 if __name__=="__main__":
-    post = False
-    if post:
-        dm = DataManager()
-        dm.load("73b2.json")
-        mygp = MyGP(dm)
-        mygp.show()
-        plt.show()
-    else:
-        rospy.init_node('wifimap_publisher')
-        pub_map = rospy.Publisher("wifimap", OccupancyGrid, queue_size = 1)
-        wfm = WifiMap()
-        dm = DataManager()
-        r = rospy.Rate(1)
-        while not rospy.is_shutdown():
-            pos_  = wfm.get_global_position()
-            if pos_ is not None:
-                pos = np.array(pos_)
-                wifi_strength = get_wifi_strength()
-                dm.push(pos, wifi_strength)
-                r.sleep()
-        dm.dump("73b2.json")
+    rospy.init_node('wifi_publisher')
+    pub = rospy.Publisher("wifi", String, queue_size = 1)
+    wfm = WifiMap()
+    dm = DataManager()
+    r = rospy.Rate(1)
+    while not rospy.is_shutdown():
+        pos_  = wfm.get_global_position()
+        if pos_ is not None:
+            pos = np.array(pos_)
+            wifi_strength = get_wifi_strength()
+            dm.push(pos, wifi_strength)
 
-
-
-
-
-
-
+        msg = String(data = dm.dumps())
+        pub.publish(msg)
+        r.sleep()
 
