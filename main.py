@@ -130,10 +130,10 @@ def get_wifi_strength():
     return wifi_strength
 
 if __name__=="__main__":
-    post = True
+    post = False
     if post:
         dm = DataManager()
-        dm.load("bak.json")
+        dm.load("73b2.json")
         mygp = MyGP(dm)
         mygp.show()
         plt.show()
