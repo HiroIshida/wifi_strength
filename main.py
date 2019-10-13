@@ -79,6 +79,18 @@ class DataManager():
         json.dump(data, json_file)
         json_file.close()
 
+    def load(self, filename = "tmp.json"):
+        json_file = open(filename, "r")
+        json_object = json.load(json_file)
+        X = json_object["X"]
+        Z = json_object["Z"]
+        self.data_x = [np.array(e) for e in X]
+        self.data_z = Z
+
+    def show(self):
+        x_list, y_list = [[e[i] for e in self.data_x] for i in [0, 1]]
+        plt.scatter(x_list, y_list)
+
     def _isValidInput(self, x, tau = 0.5):
         if self.n_data == 0:
             return True
@@ -90,6 +102,7 @@ class DataManager():
         isValid = (dist_min > tau)
         return isValid
 
+
 def get_wifi_strength():
     result_ = subprocess.check_output(["iwconfig"], stderr = subprocess.STDOUT)
     result = ''.join(result_)
@@ -98,18 +111,26 @@ def get_wifi_strength():
     return wifi_strength
 
 if __name__=="__main__":
-    rospy.init_node('wifimap_publisher')
-    pub_map = rospy.Publisher("wifimap", OccupancyGrid, queue_size = 1)
-    wfm = WifiMap()
-    dm = DataManager()
-    r = rospy.Rate(1)
-    while not rospy.is_shutdown():
-        pos_  = wfm.get_global_position()
-        if pos_ is not None:
-            pos = np.array(pos_)
-            wifi_strength = get_wifi_strength()
-            dm.push(pos, wifi_strength)
-            r.sleep()
+    post = True
+    if post:
+        dm = DataManager()
+        dm.load()
+        dm.show()
+        plt.show()
+    else:
+        rospy.init_node('wifimap_publisher')
+        pub_map = rospy.Publisher("wifimap", OccupancyGrid, queue_size = 1)
+        wfm = WifiMap()
+        dm = DataManager()
+        r = rospy.Rate(1)
+        while not rospy.is_shutdown():
+            pos_  = wfm.get_global_position()
+            if pos_ is not None:
+                pos = np.array(pos_)
+                wifi_strength = get_wifi_strength()
+                dm.push(pos, wifi_strength)
+                r.sleep()
+        dm.dump()
 
 
 
