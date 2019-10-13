@@ -38,6 +38,13 @@ class DataManager():
         self.data_x = [np.array(e) for e in X]
         self.data_z = Z
 
+    def loads(self, json_string):
+        json_object = json.loads(json_string)
+        X = json_object["X"]
+        Z = json_object["Z"]
+        self.data_x = [np.array(e) for e in X]
+        self.data_z = Z
+
     def show(self):
         x_list, y_list = [[e[i] for e in self.data_x] for i in [0, 1]]
         plt.scatter(x_list, y_list)

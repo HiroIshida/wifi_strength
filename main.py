@@ -12,12 +12,6 @@ import numpy.random as rn
 import json
 from datamanager import DataManager
 
-"""
-import gpactive.utils
-import matplotlib.pyplot as plt
-from gpactive import *
-"""
-
 class WifiMap:
     def __init__(self):
         self.listener = tf.TransformListener()
