@@ -14,6 +14,15 @@ class DataManager():
             self.n_data += 1
             print "pushed"
             print x
+
+    def get_boundary(self, margin = 0.0):
+        x_lst_lst = [[e[i] for e in self.data_x] for i in range(2)]
+        bmin_ = np.array([min(x_lst) for x_lst in x_lst_lst])
+        bmax_ = np.array([max(x_lst) for x_lst in x_lst_lst])
+        dif = bmax_ - bmin_
+        bmin = bmin_ - margin * dif
+        bmax = bmax_ + margin * dif
+        return bmin, bmax
     
     def dump(self, filename = "tmp.json"):
         x_list = [[elem[0], elem[1]] for elem in self.data_x]
@@ -49,7 +58,7 @@ class DataManager():
         x_list, y_list = [[e[i] for e in self.data_x] for i in [0, 1]]
         plt.scatter(x_list, y_list)
 
-    def _isValidInput(self, x, tau = 0.5):
+    def _isValidInput(self, x, tau = 0.3):
         if self.n_data == 0:
             return True
         x0_vec = np.array([elem[0] for elem in self.data_x])
