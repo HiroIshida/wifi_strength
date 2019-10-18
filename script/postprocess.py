@@ -9,29 +9,33 @@ from nav_msgs.msg import OccupancyGrid
 import numpy as np
 
 import json
-import GPy
+#import GPy
+from gpactive import GaussianProcess
+from gpactive.kernel import matern23_uncertain, rbf_uncertain_kernel
+import gpactive.utils
 from math import *
 
 def generate_gp(dm):
-    kernel = GPy.kern.RBF(input_dim=2, variance=5**2 , lengthscale=1.5)
-    X = np.array([[e[0], e[1]] for e in dm.data_x])
-    Y = np.array([dm.data_z]).T
-    model = GPy.models.GPRegression(X, Y, kernel)
+    kernel = rbf_uncertain_kernel(sigma = 1, l = 1.0, noise = 0.9)
+    cov = np.zeros((2, 2))
+    N = len(dm.data_x)
+    X = [(e, cov) for e in dm.data_x[0:N]]
+    Y = dm.data_z[0:N]
+    model = GaussianProcess(X, Y, kernel)
     return model
 
 def show_gp(model):
     bmin, bmax = model.get_boundary(margin = 0.2)
-    N = 50
+    N = 20
     mat_mean = np.zeros((N, N))
     mat_var = np.zeros((N, N))
     x1_lin, x2_lin = [np.linspace(bmin[i], bmax[i], N) for i in range(bmin.size)]
     X, Y = np.meshgrid(x1_lin, x2_lin)
     for i in range(N):
+        print i
         for j in range(N):
-            x = np.array([[x1_lin[i], x2_lin[j]]])
-            mean_, var_ = model.predict(x)
-            mean = mean_.item()
-            var = var_.item()
+            x = np.array([x1_lin[i], x2_lin[j]])
+            mean, var = model.predict(x)
             mat_mean[j, i] = mean
             mat_var[j, i] = var
             if var > 3.0:
@@ -43,7 +47,7 @@ def show_gp(model):
     fig.colorbar(cf)
 
     ## scatter
-    x_list, y_list = [[e[i] for e in model.X.tolist()] for i in range(2)]
+    x_list, y_list = [[e[0][i] for e in model.X] for i in range(2)]
     plt.scatter(x_list, y_list)
 
 class WifiCost:
@@ -68,7 +72,7 @@ class WifiCost:
         print "hoge-2"
 
 if __name__=="__main__":
-    debug = False
+    debug = True
     if debug:
         dm = DataManager()
         dm.load("73b2room.json")
