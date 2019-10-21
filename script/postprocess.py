@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import rospy
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from datamanager import DataManager
 from std_msgs.msg import String
@@ -9,9 +10,8 @@ from nav_msgs.msg import OccupancyGrid
 import numpy as np
 
 import json
-#import GPy
 import gp_uncinp as gu
-from math import *
+import math
 
 def generate_gp(dm):
     kernel = gu.kernel.Matern23(dim = 2, l = 0.8, noise = 15)
@@ -22,8 +22,8 @@ def generate_gp(dm):
     model = gu.gp.GaussianProcess(X, Y, kernel)
     return model
 
-def show_gp(model):
-    bmin, bmax = model.get_boundary(margin = 0.2)
+def show_gp(gp):
+    bmin, bmax = gp.get_boundary(margin = 0.2)
     N = 30
     mat_mean = np.zeros((N, N))
     mat_var = np.zeros((N, N))
@@ -33,22 +33,26 @@ def show_gp(model):
         print i
         for j in range(N):
             x = np.array([x1_lin[i], x2_lin[j]])
-            mean, var = model.predict(x)
+            mean, var = gp.predict(x)
             mat_mean[j, i] = mean
             mat_var[j, i] = var
             if var > 0.8:
                 mat_mean[j, i] = None
                 pass
-                #mat_mean[j, i] = None
 
-    levels = [-60 + 1 * i for i in range(30)]
+    value_min_, value_max_ =  gp.get_value_minmax()
+    value_min = math.floor(value_min_)
+    value_max = math.ceil(value_max_)
+
+    levels = [value_min + 1 * i for i in range(int(value_max - value_min + 1))]
     fig, ax = plt.subplots() 
     cf = ax.contourf(X, Y, mat_mean, cmap = "jet", levels = levels) 
     fig.colorbar(cf)
 
     ## scatter
-    x_list, y_list = [[e[0][i] for e in model.X] for i in range(2)]
-    plt.scatter(x_list, y_list)
+    norm = mpl.colors.Normalize(vmin = value_min, vmax= value_max)
+    x_list, y_list = [[e[0][i] for e in gp.X] for i in range(2)]
+    plt.scatter(x_list, y_list, c = gp.Y, norm = norm, cmap = "jet", edgecolor="k")
 
 class WifiCost:
     def __init__(self):
