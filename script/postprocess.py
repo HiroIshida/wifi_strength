@@ -10,23 +10,21 @@ import numpy as np
 
 import json
 #import GPy
-from gpactive import GaussianProcess
-from gpactive.kernel import matern23_uncertain, rbf_uncertain_kernel
-import gpactive.utils
+import gp_uncinp as gu
 from math import *
 
 def generate_gp(dm):
-    kernel = rbf_uncertain_kernel(sigma = 1, l = 1.0, noise = 0.9)
+    kernel = gu.kernel.Matern23(dim = 2, l = 0.8, noise = 15)
     cov = np.zeros((2, 2))
     N = len(dm.data_x)
     X = [(e, cov) for e in dm.data_x[0:N]]
     Y = dm.data_z[0:N]
-    model = GaussianProcess(X, Y, kernel)
+    model = gu.gp.GaussianProcess(X, Y, kernel)
     return model
 
 def show_gp(model):
     bmin, bmax = model.get_boundary(margin = 0.2)
-    N = 20
+    N = 30
     mat_mean = np.zeros((N, N))
     mat_var = np.zeros((N, N))
     x1_lin, x2_lin = [np.linspace(bmin[i], bmax[i], N) for i in range(bmin.size)]
@@ -38,12 +36,14 @@ def show_gp(model):
             mean, var = model.predict(x)
             mat_mean[j, i] = mean
             mat_var[j, i] = var
-            if var > 3.0:
+            if var > 0.8:
                 mat_mean[j, i] = None
+                pass
+                #mat_mean[j, i] = None
 
-    levels = [-50 + 3 * i for i in range(10)]
+    levels = [-60 + 1 * i for i in range(30)]
     fig, ax = plt.subplots() 
-    cf = ax.contourf(X, Y, mat_mean, cmap = "jet") 
+    cf = ax.contourf(X, Y, mat_mean, cmap = "jet", levels = levels) 
     fig.colorbar(cf)
 
     ## scatter
@@ -77,6 +77,7 @@ if __name__=="__main__":
         dm = DataManager()
         dm.load("73b2room.json")
         model = generate_gp(dm)
+        #model.optimize()
         show_gp(model)
         plt.show()
     else:
